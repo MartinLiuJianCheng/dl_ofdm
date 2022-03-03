@@ -12,8 +12,8 @@ if save_tx_data
     mkdir('mat');
 end
 % 1.1 OFDM parameters
-N = 64;                                                 % FFT size, Number of total subcarriers
-Ncp = 16;                                               % Length of Cyclic prefix
+N = 64;                                                 % FFT size, Number of total subcarriers，载波数量
+Ncp = 16;                                               % Length of Cyclic prefix，循环前缀
 Ts = 1e-7;                                              % Sampling period of channel
 Fd = 0;                                                 % Max Doppler frequency shift
 Np = 8;                                                 % No of pilot symbols
@@ -24,12 +24,12 @@ Frame_size = 8;                                         % OFDM symbols per frame
 Nframes = 2000;                                         % Size of tested OFDM frames: set as 10^4 for smooth curve
 M_set = [2, 4, 8, 16];                                  % Modulation orders
 SNRs = -10:1:29;                                        % Test SNR points
-% 1.2 Vehicles for results
+% 1.2 Vehicles for results                              %
 berofdm_all = zeros(5,length(SNRs));
 berofdm_all(1,:) = SNRs;
 serofdm_all = zeros(5,length(SNRs));
 serofdm_all(1,:) = SNRs;
-% 1.3 Calculate pilot locations
+% 1.3 Calculate pilot locations                         %计算导频的位置
 DC_sc = [N/2, N/2+1];
 Effec_sc = [Ng+1:N-Ng];
 Effec_sc = setdiff(Effec_sc, DC_sc);
@@ -67,28 +67,28 @@ for m_ary = 1:4
     berofdm = zeros(1,length(snr));
     serofdm = zeros(1,length(snr));    
     for i = 1:length(snr)
-        % Step 2.1 Transmitter
+        % Step 2.1 Transmitter                                  % 2.1 发送部分
         % 2.1.1 Random bits generation
         D = round((M-1)*rand(Ndata*Frame_size,Nframes));
         D_test = reshape(D, Ndata, Frame_size*Nframes);
         D_gray = D_test; % gray2bin(D_test,'qam',M);
         txbits = de2bi(D_gray(:)); % transmitted bits
-        % 2.1.2 Modulation 
+        % 2.1.2 Modulation                                                         %调制部分
         if M == 8
             Dmod = qammod(D,M,'gray');
         else
             Dmod = qammod(D,M,'gray');
         end
-        % 2.1.3 Framing
+        % 2.1.3 Framing                                                            %成帧
         Data = zeros(N*Frame_size,Nframes);   % Guard sc Insertion
         Data(data_sc_frame,:) = Dmod;   % Data sc Insertion
         txamp = max(abs(Dmod(:)));
         pilot_signal = txamp.*sqrt(1/2).*(1+1i); % Norm pilot power to peak constellation power
         Data(pilot_sc_frame,:)= pilot_signal; % Pilot sc Insertion
         Data = reshape(Data, N, Frame_size*Nframes);
-        % 2.1.4 To Time-domain OFDM symbol
+        % 2.1.4 To Time-domain OFDM symbol                                        %OFDM符号
         IFFT_Data = (N/sqrt(N-2*Np))*ifft(Data,N);
-        TxCy = [IFFT_Data((N-Ncp+1):N,:); IFFT_Data];       % Add Cyclic prefix
+        TxCy = [IFFT_Data((N-Ncp+1):N,:); IFFT_Data];       % Add Cyclic prefix，加入循环前缀
         [r, c] = size(TxCy);
         Tx_Data = TxCy;
         % 2.1.5 Clip PAPR to 8 (9dB)
@@ -99,14 +99,14 @@ for m_ary = 1:4
         Clip_Data = Tx_Data./Tx_Amp;
         Clip_Data = sqrt(Power_PAPR8).*Clip_Data;
         Tx_Data(Clip_loc) = Clip_Data(Clip_loc);
-        % Step 2.2 Wireless Channel
+        % Step 2.2 Wireless Channel                         % 2.2无线信道
         Tx_Pow_Freq = mean2(abs(Tx_Data).^2);
         Tx_Data = reshape(Tx_Data, r*Frame_size,[]);
         totalFrames = c/Frame_size;
-        % 2.2.2 Add AWGN noise
+        % 2.2.2 Add AWGN noise                                       %加入高斯白噪声
         y = awgn(Tx_Data,snr(i),'measured');                            
         y = reshape(y,r,[]);
-        % Step 2.3: OFDM Receiver
+        % Step 2.3: OFDM Receiver                            % 2.3 接收部分
         % 2.3.1 Remove cyclic prefix 
         Rx = y(Ncp+1:r,:);               
         % 2.3.2 Transform to Frequency-Domain
@@ -138,7 +138,7 @@ for m_ary = 1:4
     serofdm_all(m_ary+1,:) = serofdm;
 end
 
-%% Step 3: Result Presentation: Plot BER
+%% Step 3: Result Presentation: Plot BER          %画图
 save(mat_name, 'berofdm_all','serofdm_all');
 csvwrite(csv_name, berofdm_all);
 figure;
